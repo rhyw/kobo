@@ -7,7 +7,36 @@ from django.views.generic.edit import ProcessFormView, FormMixin
 from django.views.generic.list import ListView
 from django.views.generic.detail import DetailView
 
-class ExtraListView(ListView):
+class UsersAclMixin:
+    def _check_acl_permission(self, request):
+        permission_type = getattr(settings, "USERS_ACL_PERMISSION", "")
+
+        if permission_type == "authenticated" and not request.user.is_authenticated:
+            return "authenticated"
+        elif permission_type == "staff" and not request.user.is_staff:
+            return "staff"
+        return ""
+
+    def dispatch(self, request, *args, **kwargs):
+        permission_type = self._check_acl_permission(request)
+
+        if permission_type in ["authenticated", "staff"]:
+            if permission_type == "authenticated":
+                message = "Permission denied: you must login to access."
+            else:
+                message = "Permission denied: only staff users can access."
+            template = loader.get_template("base.html")
+            context = {
+                "error_message": message
+            }
+            return HttpResponse(
+                template.render(context, request=request),
+                status=403
+            )
+
+        return super().dispatch(request, *args, **kwargs)
+
+class ExtraListView(ListView, UsersAclMixin):
     paginate_by = getattr(settings, "PAGINATE_BY", None)
     extra_context = None
     title = None
@@ -19,6 +48,7 @@ class ExtraListView(ListView):
         if self.title is not None:
             context['title'] = self.title
         return context
+
 
 class ExtraDetailView(DetailView):
     extra_context = None
