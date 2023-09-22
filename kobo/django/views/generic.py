@@ -2,7 +2,10 @@
 
 import warnings
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db.models.query import QuerySet
+from django.http import HttpResponse
+from django.template.loader import get_template
 from django.views.generic.edit import ProcessFormView, FormMixin
 from django.views.generic.list import ListView
 from django.views.generic.detail import DetailView
@@ -25,7 +28,7 @@ class UsersAclMixin:
                 message = "Permission denied: you must login to access."
             else:
                 message = "Permission denied: only staff users can access."
-            template = loader.get_template("base.html")
+            template = get_template("base.html")
             context = {
                 "error_message": message
             }
@@ -36,7 +39,17 @@ class UsersAclMixin:
 
         return super().dispatch(request, *args, **kwargs)
 
-class ExtraListView(ListView, UsersAclMixin):
+    def get_queryset(self):
+        queryset=get_user_model().objects.order_by("username"),
+        permission_type = self._check_acl_permission(self.request)
+        if permission_type in ["authenticated", "staff"]:
+            if permission_type == "authenticated" and not self.request.user.is_authenticated:
+                return queryset.none()
+            elif permission_type == "staff" and not self.request.user.is_staff:
+                return queryset.none()
+        return queryset  # Return all objects if user is staff
+
+class ExtraListView(UsersAclMixin, ListView):
     paginate_by = getattr(settings, "PAGINATE_BY", None)
     extra_context = None
     title = None
