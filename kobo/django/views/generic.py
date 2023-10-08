@@ -21,19 +21,16 @@ class UsersAclMixin:
             return "staff"
         return ""
 
-    # def get_queryset(self):
-    #     queryset = super().get_queryset()
-    #     user_model = get_user_model()
-    #     # Check if the queryset is for the User model
-    #     if queryset.exists() and isinstance(queryset.first(), user_model):
-    #         permission_type = self._check_acl_permission(self.request)
-    #         if permission_type in ["authenticated", "staff"]:
-    #             if permission_type == "authenticated" and not self.request.user.is_authenticated:
-    #                 return queryset.none()
-    #             elif permission_type == "staff" and not self.request.user.is_staff:
-    #                 return queryset.none()
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        permission_type = self._check_acl_permission(self.request)
+        if permission_type in ["authenticated", "staff"]:
+            if permission_type == "authenticated" and not self.request.user.is_authenticated:
+                return queryset.none()
+            elif permission_type == "staff" and not self.request.user.is_staff:
+                return queryset.none()
 
-    #     return queryset
+        return queryset
 
     def dispatch(self, request, *args, **kwargs):
         permission_type = self._check_acl_permission(request)
