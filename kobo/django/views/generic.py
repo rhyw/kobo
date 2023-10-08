@@ -10,6 +10,7 @@ from django.views.generic.edit import ProcessFormView, FormMixin
 from django.views.generic.list import ListView
 from django.views.generic.detail import DetailView
 
+
 class UsersAclMixin:
     def _check_acl_permission(self, request):
         permission_type = getattr(settings, "USERS_ACL_PERMISSION", "")
@@ -19,6 +20,20 @@ class UsersAclMixin:
         elif permission_type == "staff" and not request.user.is_staff:
             return "staff"
         return ""
+
+    # def get_queryset(self):
+    #     queryset = super().get_queryset()
+    #     user_model = get_user_model()
+    #     # Check if the queryset is for the User model
+    #     if queryset.exists() and isinstance(queryset.first(), user_model):
+    #         permission_type = self._check_acl_permission(self.request)
+    #         if permission_type in ["authenticated", "staff"]:
+    #             if permission_type == "authenticated" and not self.request.user.is_authenticated:
+    #                 return queryset.none()
+    #             elif permission_type == "staff" and not self.request.user.is_staff:
+    #                 return queryset.none()
+
+    #     return queryset
 
     def dispatch(self, request, *args, **kwargs):
         permission_type = self._check_acl_permission(request)
@@ -39,19 +54,6 @@ class UsersAclMixin:
 
         return super().dispatch(request, *args, **kwargs)
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        user_model = get_user_model()
-        # Check if the queryset is for the User model
-        if queryset.exists() and isinstance(queryset.first(), user_model):
-            permission_type = self._check_acl_permission(self.request)
-            if permission_type in ["authenticated", "staff"]:
-                if permission_type == "authenticated" and not self.request.user.is_authenticated:
-                    return queryset.none()
-                elif permission_type == "staff" and not self.request.user.is_staff:
-                    return queryset.none()
-
-        return queryset
 
 class ExtraListView(UsersAclMixin, ListView):
     paginate_by = getattr(settings, "PAGINATE_BY", None)
@@ -78,6 +80,11 @@ class ExtraDetailView(DetailView):
         if self.title is not None:
             context['title'] = self.title
         return context
+
+
+class UserListView(UsersAclMixin, ExtraListView):
+    pass
+
 
 class SearchView(FormMixin, ProcessFormView, ExtraListView):
     """
