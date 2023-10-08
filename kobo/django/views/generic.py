@@ -40,14 +40,18 @@ class UsersAclMixin:
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        queryset=get_user_model().objects.order_by("username"),
-        permission_type = self._check_acl_permission(self.request)
-        if permission_type in ["authenticated", "staff"]:
-            if permission_type == "authenticated" and not self.request.user.is_authenticated:
-                return queryset.none()
-            elif permission_type == "staff" and not self.request.user.is_staff:
-                return queryset.none()
-        return queryset  # Return all objects if user is staff
+        queryset = super().get_queryset()
+        user_model = get_user_model()
+        # Check if the queryset is for the User model
+        if queryset.exists() and isinstance(queryset.first(), user_model):
+            permission_type = self._check_acl_permission(self.request)
+            if permission_type in ["authenticated", "staff"]:
+                if permission_type == "authenticated" and not self.request.user.is_authenticated:
+                    return queryset.none()
+                elif permission_type == "staff" and not self.request.user.is_staff:
+                    return queryset.none()
+
+        return queryset
 
 class ExtraListView(UsersAclMixin, ListView):
     paginate_by = getattr(settings, "PAGINATE_BY", None)
