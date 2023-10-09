@@ -188,16 +188,40 @@ class TestUserView(django.test.TransactionTestCase):
 
         self.client = django.test.Client()
 
+    # nothing will be impacted if `USERS_ACL_PERMISSION` is not available
+    # in settings or is an empty string
+    @override_settings(USERS_ACL_PERMISSION="")
     def test_list(self):
         response = self.client.get('/info/user/')
         self.assertEqual(response.status_code, 200)
         self.assertTrue(self.user1.username in str(response.content))
         self.assertTrue(self.user2.username in str(response.content))
 
+    @override_settings(USERS_ACL_PERMISSION="")
     def test_detail(self):
         response = self.client.get('/info/user/%d/' % self.user1.id)
         self.assertEqual(response.status_code, 200)
         self.assertTrue('#%d: %s' % (self.user1.id, self.user1.username) in str(response.content))
+
+    @override_settings(USERS_ACL_PERMISSION="authenticated")
+    def test_authenticated_access_user_list(self):
+        response = self.client.get('/info/user/')
+        self.assertEqual(response.status_code, 403)
+
+    @override_settings(USERS_ACL_PERMISSION="authenticated")
+    def test_authenticated_access_user_detail(self):
+        response = self.client.get('/info/user/%d/' % self.user1.id)
+        self.assertEqual(response.status_code, 403)
+
+    @override_settings(USERS_ACL_PERMISSION="staff")
+    def test_staff_access_user_list(self):
+        response = self.client.get('/info/user/')
+        self.assertEqual(response.status_code, 403)
+
+    @override_settings(USERS_ACL_PERMISSION="staff")
+    def test_staff_access_user_detail(self):
+        response = self.client.get('/info/user/%d/' % self.user1.id)
+        self.assertEqual(response.status_code, 403)
 
 
 class TestWorkerView(django.test.TransactionTestCase):
